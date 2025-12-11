@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Shield, Users, Video, AlertTriangle, Trash2, Ban, CheckCircle } from 'lucide-react';
-import { mockUser } from '../services/mockApi'; // Demo data
+import React, { useState, useEffect } from 'react';
+import { Shield, Users, Video as VideoIcon, AlertTriangle, Trash2, Ban, CheckCircle } from 'lucide-react';
+import { api } from '../services/api';
+import { Video, User } from '../types';
 
 const TabButton = ({ active, label, icon: Icon, onClick }: any) => (
   <button 
@@ -27,14 +28,14 @@ export const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-         <StatCard label="Total Users" value="1,240" />
-         <StatCard label="Total Videos" value="8,503" />
-         <StatCard label="Storage Used" value="4.2 TB" />
-         <StatCard label="Pending Reports" value="12" alert />
+         <StatCard label="Total Users" value="12" />
+         <StatCard label="Total Videos" value="142" />
+         <StatCard label="Storage Used" value="4.2 GB" />
+         <StatCard label="Pending Reports" value="0" alert={false} />
       </div>
 
       <div className="border-b border-gray-700 flex mb-6">
-         <TabButton active={activeTab === 'videos'} label="Videos" icon={Video} onClick={() => setActiveTab('videos')} />
+         <TabButton active={activeTab === 'videos'} label="Videos" icon={VideoIcon} onClick={() => setActiveTab('videos')} />
          <TabButton active={activeTab === 'users'} label="Users" icon={Users} onClick={() => setActiveTab('users')} />
          <TabButton active={activeTab === 'reports'} label="Reports" icon={AlertTriangle} onClick={() => setActiveTab('reports')} />
       </div>
@@ -55,88 +56,77 @@ const StatCard = ({ label, value, alert }: any) => (
   </div>
 );
 
-// --- Sub-components for Tables (Mocked) ---
+// --- Sub-components for Tables ---
 
-const VideosTable = () => (
-  <table className="w-full text-left">
-    <thead className="bg-[#2a2a2a] text-gray-400 text-sm">
-      <tr>
-        <th className="p-4">Title</th>
-        <th className="p-4">Uploader</th>
-        <th className="p-4">Stats</th>
-        <th className="p-4">Status</th>
-        <th className="p-4 text-right">Actions</th>
-      </tr>
-    </thead>
-    <tbody className="divide-y divide-gray-800">
-      {[1, 2, 3].map(i => (
-        <tr key={i} className="hover:bg-[#2a2a2a]">
-          <td className="p-4">
-            <div className="flex gap-3">
-              <div className="w-16 h-9 bg-gray-700 rounded overflow-hidden">
-                <img src={`https://picsum.photos/seed/${i*20}/100/60`} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <p className="font-medium">Video Title #{i}</p>
-                <p className="text-xs text-gray-500">{i} days ago</p>
-              </div>
-            </div>
-          </td>
-          <td className="p-4">User_{i}</td>
-          <td className="p-4 text-sm text-gray-400">{i}k views</td>
-          <td className="p-4"><span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded-full">Public</span></td>
-          <td className="p-4 text-right">
-             <button className="text-red-400 hover:bg-red-900/30 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
-          </td>
+const VideosTable = () => {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  const loadVideos = () => {
+    setLoading(true);
+    api.getVideos().then(data => {
+      setVideos(data);
+      setLoading(false);
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this video?')) {
+      try {
+        await api.deleteVideo(id);
+        loadVideos(); // Refresh
+      } catch (err) {
+        alert('Failed to delete video');
+      }
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center">Loading videos...</div>;
+
+  return (
+    <table className="w-full text-left">
+      <thead className="bg-[#2a2a2a] text-gray-400 text-sm">
+        <tr>
+          <th className="p-4">Title</th>
+          <th className="p-4">Uploader</th>
+          <th className="p-4">Stats</th>
+          <th className="p-4">Visibility</th>
+          <th className="p-4 text-right">Actions</th>
         </tr>
-      ))}
-    </tbody>
-  </table>
-);
+      </thead>
+      <tbody className="divide-y divide-gray-800">
+        {videos.map(video => (
+          <tr key={video._id} className="hover:bg-[#2a2a2a]">
+            <td className="p-4">
+              <div className="flex gap-3">
+                <div className="w-16 h-9 bg-gray-700 rounded overflow-hidden">
+                  <img src={video.thumbnailUrl || 'https://via.placeholder.com/100x60'} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <p className="font-medium line-clamp-1">{video.title}</p>
+                  <p className="text-xs text-gray-500">{video.createdAt ? new Date(video.createdAt).toLocaleDateString() : ''}</p>
+                </div>
+              </div>
+            </td>
+            <td className="p-4">{video.uploader?.username || 'Unknown'}</td>
+            <td className="p-4 text-sm text-gray-400">{video.views} views</td>
+            <td className="p-4"><span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded-full">{video.visibility}</span></td>
+            <td className="p-4 text-right">
+               <button onClick={() => handleDelete(video._id)} className="text-red-400 hover:bg-red-900/30 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
 
 const UsersTable = () => (
-  <table className="w-full text-left">
-     <thead className="bg-[#2a2a2a] text-gray-400 text-sm">
-      <tr>
-        <th className="p-4">User</th>
-        <th className="p-4">Role</th>
-        <th className="p-4">Joined</th>
-        <th className="p-4 text-right">Actions</th>
-      </tr>
-    </thead>
-    <tbody className="divide-y divide-gray-800">
-      <tr className="hover:bg-[#2a2a2a]">
-        <td className="p-4 flex items-center gap-2">
-           <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center font-bold text-xs">D</div>
-           <div>
-             <p className="font-medium">DemoCreator</p>
-             <p className="text-xs text-gray-500">demo@opentube.com</p>
-           </div>
-        </td>
-        <td className="p-4"><span className="bg-purple-900 text-purple-300 text-xs px-2 py-1 rounded-full">ADMIN</span></td>
-        <td className="p-4 text-gray-400 text-sm">Oct 2023</td>
-        <td className="p-4 text-right">
-           <button className="text-gray-400 hover:text-white mr-2">Edit</button>
-        </td>
-      </tr>
-      <tr className="hover:bg-[#2a2a2a]">
-        <td className="p-4 flex items-center gap-2">
-           <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center font-bold text-xs">S</div>
-           <div>
-             <p className="font-medium">Spammer_123</p>
-             <p className="text-xs text-gray-500">spam@fake.com</p>
-           </div>
-        </td>
-        <td className="p-4"><span className="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded-full">USER</span></td>
-        <td className="p-4 text-gray-400 text-sm">Today</td>
-        <td className="p-4 text-right">
-           <button className="text-red-400 hover:bg-red-900/30 px-3 py-1 rounded text-sm flex items-center gap-1 ml-auto">
-             <Ban className="w-3 h-3" /> Ban
-           </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div className="p-8 text-center text-gray-400">User management coming soon...</div>
 );
 
 const ReportsTable = () => (

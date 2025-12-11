@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 4000;
 // Middleware
 app.use(cors());
 // Increase payload limit for metadata, though video upload uses multer stream
-app.use(express.json({ limit: '10mb' })); 
+app.use(express.json({ limit: '10mb' }) as any); 
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI as string)

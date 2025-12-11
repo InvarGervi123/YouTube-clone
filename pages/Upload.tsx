@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
-import { UploadCloud, CheckCircle } from 'lucide-react';
+import { UploadCloud, CheckCircle, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
 
 export const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [visibility, setVisibility] = useState('public');
+  
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setTitle(selectedFile.name.replace(/\.[^/.]+$/, "")); // Default title is filename
     }
   };
 
@@ -19,26 +27,39 @@ export const Upload = () => {
     if (!file) return;
 
     setUploading(true);
-    
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setUploading(false);
-          // In real app, redirect to video manager or watch page
-          setTimeout(() => navigate('/'), 1000); 
-          return 100;
-        }
-        return prev + 10;
+    setProgress(0);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('video', file);
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('visibility', visibility);
+
+    try {
+      await api.uploadVideo(formData, (percent) => {
+        setProgress(percent);
       });
-    }, 500);
+      // Success
+      setUploading(false);
+      setTimeout(() => navigate('/'), 1000);
+    } catch (err: any) {
+      setUploading(false);
+      setError(err.response?.data?.error || "Upload failed. Please try again.");
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-[#272727] rounded-xl mt-10">
       <h2 className="text-2xl font-bold mb-6">Upload Video</h2>
       
+      {error && (
+        <div className="bg-red-900/50 text-red-200 p-3 rounded mb-4 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          {error}
+        </div>
+      )}
+
       {!file ? (
         <div className="border-2 border-dashed border-gray-600 rounded-xl p-12 flex flex-col items-center justify-center text-center hover:bg-[#3f3f3f] transition-colors relative">
           <input 
@@ -64,22 +85,41 @@ export const Upload = () => {
                 <p className="font-medium truncate">{file.name}</p>
                 <p className="text-xs text-gray-400">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
              </div>
-             <button type="button" onClick={() => setFile(null)} className="text-red-400 text-sm hover:underline">Change</button>
+             <button type="button" onClick={() => setFile(null)} className="text-red-400 text-sm hover:underline" disabled={uploading}>Change</button>
           </div>
 
           <div>
              <label className="block text-sm font-medium mb-1">Title (required)</label>
-             <input type="text" className="w-full bg-[#121212] border border-gray-600 rounded p-2 focus:border-blue-500 outline-none" placeholder="Video title" defaultValue={file.name} />
+             <input 
+               type="text" 
+               className="w-full bg-[#121212] border border-gray-600 rounded p-2 focus:border-blue-500 outline-none" 
+               placeholder="Video title" 
+               value={title}
+               onChange={e => setTitle(e.target.value)}
+               required
+               disabled={uploading}
+             />
           </div>
 
           <div>
              <label className="block text-sm font-medium mb-1">Description</label>
-             <textarea className="w-full bg-[#121212] border border-gray-600 rounded p-2 focus:border-blue-500 outline-none h-32" placeholder="Tell viewers about your video"></textarea>
+             <textarea 
+               className="w-full bg-[#121212] border border-gray-600 rounded p-2 focus:border-blue-500 outline-none h-32" 
+               placeholder="Tell viewers about your video"
+               value={description}
+               onChange={e => setDescription(e.target.value)}
+               disabled={uploading}
+             ></textarea>
           </div>
 
           <div>
              <label className="block text-sm font-medium mb-1">Visibility</label>
-             <select className="w-full bg-[#121212] border border-gray-600 rounded p-2 focus:border-blue-500 outline-none">
+             <select 
+               className="w-full bg-[#121212] border border-gray-600 rounded p-2 focus:border-blue-500 outline-none"
+               value={visibility}
+               onChange={e => setVisibility(e.target.value)}
+               disabled={uploading}
+             >
                 <option value="public">Public</option>
                 <option value="unlisted">Unlisted</option>
                 <option value="private">Private</option>
@@ -89,12 +129,13 @@ export const Upload = () => {
           {uploading ? (
              <div>
                 <div className="flex justify-between text-sm mb-1">
-                   <span>Uploading...</span>
+                   <span>Uploading to Server...</span>
                    <span>{progress}%</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                    <div className="bg-blue-500 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
                 </div>
+                {progress === 100 && <p className="text-xs text-yellow-400 mt-2">Processing video and generating thumbnails... Please wait.</p>}
              </div>
           ) : progress === 100 ? (
              <div className="flex items-center text-green-500 gap-2">
