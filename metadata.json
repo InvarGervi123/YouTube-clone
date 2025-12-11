@@ -1,0 +1,5 @@
+{
+  "name": "OpenTube",
+  "description": "A self-hosted, scalable video platform MVP with admin tools, video processing, and role-based access control.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenTube</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                red: '#FF0000',
+                dark: '#0F0F0F',
+                gray: '#272727',
+                light: '#F1F1F1'
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Custom scrollbar for dark theme feel */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0f0f0f;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0",
+    "path": "https://esm.sh/path@^0.12.7",
+    "react/": "https://esm.sh/react@^19.2.1/",
+    "react": "https://esm.sh/react@^19.2.1",
+    "lucide-react": "https://esm.sh/lucide-react@^0.560.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
+    "express": "https://esm.sh/express@^5.2.1",
+    "cors": "https://esm.sh/cors@^2.8.5",
+    "dotenv": "https://esm.sh/dotenv@^17.2.3",
+    "bcryptjs": "https://esm.sh/bcryptjs@^3.0.3",
+    "mongoose": "https://esm.sh/mongoose@^9.0.1",
+    "jsonwebtoken": "https://esm.sh/jsonwebtoken@^9.0.3"
+  }
+}
+</script>
+</head>
+  <body class="bg-brand-dark text-white overflow-x-hidden">
+    <div id="root"></div>
+  </body>
+</html>
